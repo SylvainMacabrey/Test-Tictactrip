@@ -9,8 +9,24 @@ var token;
 
 module.exports = {
 
-    getUser: () => {
-        return user;
+    getUser: (bearerHeader) => {
+        // Vérifier si le porteur est indéfini
+        if(typeof bearerHeader !== 'undefined') {
+            // split à l'espace , Quand on envois le token bearer #token
+            const bearer = bearerHeader.split(' ');
+            // Obtenir le jeton d'un tableau
+            token = bearer[1];
+            if(token != null) {
+                try {
+                    var jwtToken = jwt.verify(token, JWT_SIGN_SECRET);
+                    return jwtToken.user;
+                    
+                } catch (err) {
+                    console.log(err.message);
+                    return;
+                }
+            }
+        }
     },
 
     createToken: (req, res) => {
@@ -40,16 +56,20 @@ module.exports = {
                 connection.query("SELECT MAX(id) FROM users", function (err, result) {
                     if (err) throw err;
                     user = { id: result[0].id, email: result[0].email}
+                    // Création du token
+                    jwt.sign({ user }, JWT_SIGN_SECRET, { expiresIn: '24h' }, (err, token) => {
+                        res.json({ token });
+                    });
                 });
             } else {
                 user = { id: authorized.id, email: authorized.email}
+                // Création du token
+                jwt.sign({ user }, JWT_SIGN_SECRET, { expiresIn: '24h' }, (err, token) => {
+                    res.json({ token });
+                });
             }
         });
-
-        // Création du token
-        jwt.sign({ user }, JWT_SIGN_SECRET, { expiresIn: '24h' }, (err, token) => {
-            res.json({ token });
-        });
+        
     },
 
     verifyToken: (bearerHeader) => {
@@ -63,6 +83,7 @@ module.exports = {
             if(token != null) {
                 try {
                     var jwtToken = jwt.verify(token, JWT_SIGN_SECRET);
+                    console.log(jwtToken.user);
                     if(jwtToken != null) {
                         response = true;
                     } else {

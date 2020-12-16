@@ -97,9 +97,6 @@ module.exports = {
         // Récupération du texte à justifier
         var text = req.body;
 
-        // Récupération user
-        var user = tokenController.getUser();
-
         // Vérification du texte
         if (!text) {
             res.send('');
@@ -108,6 +105,7 @@ module.exports = {
 
         // Obtention la valeur de l'en-tête auth
         const bearerHeader = req.headers['authorization'];
+
         // Vérification du token
         var authorized = tokenController.verifyToken(bearerHeader);
         if(!authorized) {
@@ -115,12 +113,15 @@ module.exports = {
             return;
         }
 
+        // Récupération user
+        var user = tokenController.getUser(bearerHeader);
+        //console.log(user);
+
         // Verification rate limit
         connection.query('SELECT SUM(nbCaracteres) as sum FROM texts WHERE id_user = ' + mysql.escape(user.id) + ' AND date = DATE(NOW()) ' + 'GROUP BY id_user', (error, results, fields) => {
             if (error) {
                 console.log(error);
             } else {
-                console.log(results[0]);
                 if(typeof results[0] != 'undefined') {
                     console.log(results[0].sum + text.length)
                     if(results[0].sum + text.length > 80000) {
